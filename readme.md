@@ -136,6 +136,37 @@ python scripts/compare.py \
 
 O script calcula métricas de similaridade estrutural (SSIM) e diferença absoluta média para auxiliar a inspeção visual.
 
+## Integração com WhatsApp e persistência dos resultados
+
+- Utilize `scripts/whatsapp_webhook.py` para expor um endpoint FastAPI capaz de receber webhooks (ex.: Twilio WhatsApp).
+- Cada requisição registrada gera uma entrada na tabela `analises` (`sqlite`) com metadados, probabilidades calculadas pelo modelo e carimbo de tempo.
+- Os arquivos temporários usados durante a inferência são eliminados automaticamente; opcionalmente é possível manter uma cópia em um diretório seguro configurado via variável de ambiente.
+
+Inicie o servidor:
+
+```bash
+uvicorn scripts.whatsapp_webhook:app --host 0.0.0.0 --port 8000
+```
+
+### Variáveis de ambiente
+
+Configure as variáveis abaixo para controlar o comportamento do webhook:
+
+- `WHATSAPP_CONFIG_PATH`: caminho para o arquivo YAML de configuração do experimento (obrigatório).
+- `WHATSAPP_CHECKPOINT_PATH`: checkpoint `.pt` utilizado na inferência (obrigatório).
+- `WHATSAPP_DB_PATH`: caminho do banco SQLite que armazenará a tabela `analises` (padrão: `artifacts/whatsapp.sqlite`).
+- `WHATSAPP_PROVIDER_TOKEN`: token/bearer utilizado para baixar mídias do provedor.
+- `WHATSAPP_PROVIDER_BASE_URL`: URL base para compor o download da mídia quando o provedor retorna caminhos relativos.
+- `WHATSAPP_RETAIN_MEDIA`: defina como `true`/`1` para manter uma cópia do arquivo analisado após a inferência.
+- `WHATSAPP_RETENTION_DIR`: diretório seguro onde os arquivos serão armazenados caso `WHATSAPP_RETAIN_MEDIA` esteja ativo.
+
+## Políticas de privacidade e consentimento
+
+- Somente armazene mídias e metadados após garantir consentimento explícito do paciente/usuário e justifique o propósito em termos claros.
+- Garanta que o diretório/armazenamento configurado em `WHATSAPP_RETENTION_DIR` possua controles de acesso equivalentes a um "bucket" seguro (criptografia em repouso, controle de chaves e auditoria).
+- Exclua periodicamente os registros que não forem mais necessários e respeite pedidos de anonimização, utilizando o identificador único (`message_id`) como referência.
+- Atualize contratos, termos de uso e comunicações com pacientes para refletir o fluxo de dados descrito nesta documentação.
+
 ## Próximos passos sugeridos
 
 - expandir o conjunto de dados com amostras devidamente anonimizadas e rotuladas por especialistas;
