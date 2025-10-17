@@ -19,10 +19,17 @@ class PathsConfig:
     num_workers: int = 4
     output_dir: Path = Path("artifacts")
 
-    def ensure(self) -> None:
+    def ensure(self, classes: List[str] | None = None) -> None:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         (self.output_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
         (self.output_dir / "logs").mkdir(parents=True, exist_ok=True)
+
+        for split in ("train", "val", "test"):
+            split_path = Path(getattr(self, split))
+            split_path.mkdir(parents=True, exist_ok=True)
+            if classes:
+                for cls in classes:
+                    (split_path / cls).mkdir(parents=True, exist_ok=True)
 
 
 @dataclass
@@ -92,7 +99,7 @@ def _build_config(data: dict) -> ExperimentConfig:
         checkpoint=checkpoint_cfg,
     )
 
-    config.paths.ensure()
+    config.paths.ensure(config.classes)
     return config
 
 

@@ -59,7 +59,7 @@ def _ensure_session_defaults() -> None:
 
 def _load_cfg(path: str) -> ExperimentConfig:
     cfg = load_config(path)
-    cfg.paths.ensure()
+    cfg.paths.ensure(cfg.classes)
     return cfg
 
 
