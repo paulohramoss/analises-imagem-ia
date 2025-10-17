@@ -126,6 +126,30 @@ python scripts/predict.py \
 
 A saída inclui a probabilidade prevista para cada classe definida na configuração.
 
+### Serviço de inferência via API
+
+Uma API em FastAPI está disponível em `api/main.py` para consumo via HTTP. Para executá-la:
+
+```bash
+export MEDIMAGING_CONFIG=configs/default.yaml
+export MEDIMAGING_CHECKPOINT=artifacts/checkpoints/best.pt
+uvicorn api.main:app --reload
+```
+
+O endpoint `POST /analyze` aceita um arquivo enviado em `multipart/form-data` (campo `file`). A resposta segue o contrato:
+
+```json
+{
+  "classes": ["lesao", "normal"],
+  "probabilities": {
+    "lesao": 0.73,
+    "normal": 0.27
+  }
+}
+```
+
+Em caso de falha, a API retorna erro no formato `{ "error": "...", "message": "..." }`, facilitando o tratamento em clientes externos.
+
 ## Comparação de exames
 
 ```bash
