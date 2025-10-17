@@ -4,12 +4,18 @@ from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
+import sys
 from contextlib import contextmanager
 from typing import Any, Dict
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if SRC_DIR.exists() and str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from medimaging_ai.compare import compare_images
 from medimaging_ai.config import ExperimentConfig, load_config
