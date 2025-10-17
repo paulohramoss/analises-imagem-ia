@@ -6,14 +6,14 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
+        "streamlit",
         "torch",
         "torchvision",
         "numpy",
         "pillow",
         "pyyaml",
-        "requests",
-        "fastapi",
-        "python-multipart",
+        "plotly",
+        "pandas",
     ],
     python_requires=">=3.8",
 )

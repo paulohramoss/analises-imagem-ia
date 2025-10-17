@@ -1,5 +1,8 @@
+streamlit
 torch
 torchvision
 numpy
 pillow
 pyyaml
+plotly
+pandas
