@@ -1,0 +1,8 @@
+Relatorio para paciente - linguagem simplificada
+As imagens analisadas indicam 53.8% de chance de haver lesao.
+Isto significa que o nivel de atencao sugerido e moderado.
+Proximo passo recomendado:
+- Agende uma consulta com o(a) seu(sua) medico(a) para discutir o resultado.
+- Leve este relatorio e informe qualquer sintoma ou mudanca recente.
+
+Importante: este resultado complementa, mas nao substitui, a avaliacao medica presencial.

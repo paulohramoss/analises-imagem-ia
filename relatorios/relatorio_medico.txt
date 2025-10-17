@@ -1,0 +1,9 @@
+Relatorio tecnico - avaliacao automatizada
+Classe com maior probabilidade: lesao (53.8%).
+Probabilidade de lesao: 53.8%. Risco estimado: moderado.
+Recomendacoes:
+- Correlacionar com quadro clinico e historia pregressa do paciente.
+- Comparar com exames anteriores (se disponiveis).
+- Considerar exames complementares caso o quadro clinico nao esteja explicado.
+
+Observacao: resultado gerado por algoritmo supervisionado. Confirmar achados em discussao clinica.
