@@ -1,6 +1,6 @@
 import torch
 
-model_state_dict = torch.load('artifacts/checkpoints/best.pt')
+model_state_dict = torch.load('artifacts/checkpoints/latest.pt')
 
 head = model_state_dict
 

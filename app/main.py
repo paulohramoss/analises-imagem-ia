@@ -151,7 +151,7 @@ def _render_training_tab() -> None:
     if metrics_path.exists():
         st.subheader("Histórico de métricas")
         metrics_df = pd.read_csv(metrics_path)
-        st.dataframe(metrics_df, use_container_width=True)
+        st.dataframe(metrics_df, width="stretch")
 
 
 def _render_inference_tab() -> None:
@@ -192,10 +192,10 @@ def _render_inference_tab() -> None:
                 "Probabilidade": list(predictions.values()),
             }
         )
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
         try:
             fig = px.bar(df, x="Classe", y="Probabilidade", range_y=[0, 1])
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         except Exception:  # pragma: no cover - visualização opcional
             pass
 
