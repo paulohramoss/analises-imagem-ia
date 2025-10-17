@@ -11,7 +11,8 @@ O projeto inclui:
 - scripts de treinamento, inferência e comparação de exames;
 - pipeline de dados baseado em diretórios rotulados (`normal`, `lesao`, etc.);
 - configuração por arquivos YAML;
-- funções utilitárias para registro e checkpoints.
+- funções utilitárias para registro e checkpoints;
+- serviço FastAPI com health-check e logs estruturados para monitoramento em produção.
 
 ## Estrutura de diretórios
 
@@ -26,18 +27,25 @@ O projeto inclui:
 │   └── val/
 │       ├── normal/
 │       └── lesao/
+├── Dockerfile
+├── docker-compose.yml
 ├── requirements.txt
 ├── scripts/
 │   ├── compare.py
+│   ├── deploy.sh
 │   ├── predict.py
 │   └── train.py
 └── src/
     └── medimaging_ai/
         ├── __init__.py
         ├── compare.py
+        ├── api/
+        │   ├── __init__.py
+        │   └── app.py
         ├── config.py
         ├── data.py
         ├── inference.py
+        ├── settings.py
         ├── models.py
         ├── trainer.py
         └── utils.py
@@ -58,6 +66,37 @@ source .venv/bin/activate  # Linux/macOS
 ```bash
 pip install -r requirements.txt
 ```
+
+## Deploy com Docker
+
+O repositório inclui uma infraestrutura pronta para containerização e publicação atrás de um proxy HTTPS (NGINX). Para iniciar rapidamente:
+
+1. Copie o arquivo de exemplo e ajuste as variáveis de ambiente necessárias (tokens do WhatsApp, caminhos de checkpoints e parâmetros do modelo):
+
+   ```bash
+   cp .env.example .env
+   # edite .env conforme o ambiente de produção
+   ```
+
+2. Execute o script de deploy para construir as imagens, criar os volumes de checkpoints e subir os serviços:
+
+   ```bash
+   ./scripts/deploy.sh
+   ```
+
+   O script utiliza `docker compose` para inicializar dois containers:
+
+   - **api**: roda `gunicorn` com workers `uvicorn`, carregando as dependências de PyTorch + FastAPI. O volume nomeado `checkpoints` mantém os arquivos de modelo persistentes em `/checkpoints`.
+   - **proxy**: container NGINX que faz o proxy reverso (HTTP/HTTPS) para o serviço FastAPI. Monte seus certificados TLS em `./certs` (`server.crt` e `server.key`).
+
+3. Para acompanhar o status dos serviços:
+
+   ```bash
+   docker compose logs -f api
+   docker compose logs -f proxy
+   ```
+
+O endpoint `GET /health` responde com informações sobre o ambiente, tokens configurados e disponibilidade dos checkpoints. Os logs do backend são emitidos em JSON para facilitar integração com plataformas de observabilidade.
 
 ## Preparação dos dados
 
@@ -125,6 +164,30 @@ python scripts/predict.py \
 ```
 
 A saída inclui a probabilidade prevista para cada classe definida na configuração.
+
+### Serviço de inferência via API
+
+Uma API em FastAPI está disponível em `api/main.py` para consumo via HTTP. Para executá-la:
+
+```bash
+export MEDIMAGING_CONFIG=configs/default.yaml
+export MEDIMAGING_CHECKPOINT=artifacts/checkpoints/best.pt
+uvicorn api.main:app --reload
+```
+
+O endpoint `POST /analyze` aceita um arquivo enviado em `multipart/form-data` (campo `file`). A resposta segue o contrato:
+
+```json
+{
+  "classes": ["lesao", "normal"],
+  "probabilities": {
+    "lesao": 0.73,
+    "normal": 0.27
+  }
+}
+```
+
+Em caso de falha, a API retorna erro no formato `{ "error": "...", "message": "..." }`, facilitando o tratamento em clientes externos.
 
 ## Comparação de exames
 
