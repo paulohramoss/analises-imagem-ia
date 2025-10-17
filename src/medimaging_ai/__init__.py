@@ -5,6 +5,7 @@ from .data import build_dataloaders
 from .inference import Predictor
 from .models import build_model
 from .trainer import Trainer
+from .whatsapp import WhatsAppProcessor
 
 __all__ = [
     "ExperimentConfig",
@@ -13,4 +14,5 @@ __all__ = [
     "Predictor",
     "build_model",
     "Trainer",
+    "WhatsAppProcessor",
 ]

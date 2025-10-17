@@ -165,6 +165,30 @@ python scripts/predict.py \
 
 A saída inclui a probabilidade prevista para cada classe definida na configuração.
 
+### Serviço de inferência via API
+
+Uma API em FastAPI está disponível em `api/main.py` para consumo via HTTP. Para executá-la:
+
+```bash
+export MEDIMAGING_CONFIG=configs/default.yaml
+export MEDIMAGING_CHECKPOINT=artifacts/checkpoints/best.pt
+uvicorn api.main:app --reload
+```
+
+O endpoint `POST /analyze` aceita um arquivo enviado em `multipart/form-data` (campo `file`). A resposta segue o contrato:
+
+```json
+{
+  "classes": ["lesao", "normal"],
+  "probabilities": {
+    "lesao": 0.73,
+    "normal": 0.27
+  }
+}
+```
+
+Em caso de falha, a API retorna erro no formato `{ "error": "...", "message": "..." }`, facilitando o tratamento em clientes externos.
+
 ## Comparação de exames
 
 ```bash
@@ -174,6 +198,37 @@ python scripts/compare.py \
 ```
 
 O script calcula métricas de similaridade estrutural (SSIM) e diferença absoluta média para auxiliar a inspeção visual.
+
+## Integração com WhatsApp e persistência dos resultados
+
+- Utilize `scripts/whatsapp_webhook.py` para expor um endpoint FastAPI capaz de receber webhooks (ex.: Twilio WhatsApp).
+- Cada requisição registrada gera uma entrada na tabela `analises` (`sqlite`) com metadados, probabilidades calculadas pelo modelo e carimbo de tempo.
+- Os arquivos temporários usados durante a inferência são eliminados automaticamente; opcionalmente é possível manter uma cópia em um diretório seguro configurado via variável de ambiente.
+
+Inicie o servidor:
+
+```bash
+uvicorn scripts.whatsapp_webhook:app --host 0.0.0.0 --port 8000
+```
+
+### Variáveis de ambiente
+
+Configure as variáveis abaixo para controlar o comportamento do webhook:
+
+- `WHATSAPP_CONFIG_PATH`: caminho para o arquivo YAML de configuração do experimento (obrigatório).
+- `WHATSAPP_CHECKPOINT_PATH`: checkpoint `.pt` utilizado na inferência (obrigatório).
+- `WHATSAPP_DB_PATH`: caminho do banco SQLite que armazenará a tabela `analises` (padrão: `artifacts/whatsapp.sqlite`).
+- `WHATSAPP_PROVIDER_TOKEN`: token/bearer utilizado para baixar mídias do provedor.
+- `WHATSAPP_PROVIDER_BASE_URL`: URL base para compor o download da mídia quando o provedor retorna caminhos relativos.
+- `WHATSAPP_RETAIN_MEDIA`: defina como `true`/`1` para manter uma cópia do arquivo analisado após a inferência.
+- `WHATSAPP_RETENTION_DIR`: diretório seguro onde os arquivos serão armazenados caso `WHATSAPP_RETAIN_MEDIA` esteja ativo.
+
+## Políticas de privacidade e consentimento
+
+- Somente armazene mídias e metadados após garantir consentimento explícito do paciente/usuário e justifique o propósito em termos claros.
+- Garanta que o diretório/armazenamento configurado em `WHATSAPP_RETENTION_DIR` possua controles de acesso equivalentes a um "bucket" seguro (criptografia em repouso, controle de chaves e auditoria).
+- Exclua periodicamente os registros que não forem mais necessários e respeite pedidos de anonimização, utilizando o identificador único (`message_id`) como referência.
+- Atualize contratos, termos de uso e comunicações com pacientes para refletir o fluxo de dados descrito nesta documentação.
 
 ## Próximos passos sugeridos
 
