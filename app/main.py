@@ -26,7 +26,9 @@ st.set_page_config(page_title="MedImaging AI", layout="wide")
 def _to_serializable(data: Any) -> Any:
     """Converte dataclasses e objetos Path em dicionários serializáveis."""
 
-    if is_dataclass(data):
+    # is_dataclass() returns True for both dataclass instances and dataclass types;
+    # ensure we only call asdict on instances (not on the class/type itself).
+    if is_dataclass(data) and not isinstance(data, type):
         data = asdict(data)
     if isinstance(data, dict):
         return {key: _to_serializable(value) for key, value in data.items()}
@@ -127,7 +129,14 @@ def _render_training_tab() -> None:
                 st.error(f"Falha durante o treinamento: {exc}")
     with col2:
         if st.button("Atualizar status"):
-            st.experimental_rerun()
+            try:
+                rerun = getattr(st, "experimental_rerun", None) or getattr(st, "rerun", None)
+                if callable(rerun):
+                    rerun()
+                else:
+                    st.info("Atualize a página para ver o status mais recente.")
+            except Exception:
+                st.info("Atualize a página para ver o status mais recente.")
 
     if status:
         st.subheader("Status do treinamento")
