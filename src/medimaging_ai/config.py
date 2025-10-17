@@ -73,7 +73,12 @@ class ExperimentConfig:
 
 
 def _build_config(data: dict) -> ExperimentConfig:
-    paths = PathsConfig(**data["paths"])
+    paths_data = data["paths"].copy()
+    for key in ("train", "val", "test", "output_dir"):
+        if key in paths_data and not isinstance(paths_data[key], Path):
+            paths_data[key] = Path(paths_data[key])
+
+    paths = PathsConfig(**paths_data)
     classes = data["classes"]
     train_cfg = TrainConfig(**data.get("train", {}))
     transforms_cfg = TransformsConfig(**data.get("transforms", {}))
