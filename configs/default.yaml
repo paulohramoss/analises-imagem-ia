@@ -8,8 +8,8 @@ paths:
 
 # Classes presentes nos diretórios
 classes:
-  - normal
   - lesao
+  - normal
 
 # Hiperparâmetros de treinamento
 train:
