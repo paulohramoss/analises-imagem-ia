@@ -1,0 +1,35 @@
+# Caminhos dos dados
+paths:
+  train: data/train
+  val: data/val
+  test: data/test
+  num_workers: 4
+  output_dir: artifacts
+
+# Classes presentes nos diretórios
+classes:
+  - normal
+  - lesao
+
+# Hiperparâmetros de treinamento
+train:
+  seed: 42
+  image_size: 224
+  batch_size: 16
+  num_epochs: 25
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  patience: 5
+
+# Transformações de dados
+transforms:
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  horizontal_flip: true
+  rotation_degrees: 15
+
+# Checkpoints
+checkpoint:
+  save_best_only: true
+  monitor: val_loss
+  mode: min
