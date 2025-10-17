@@ -150,9 +150,13 @@ def _render_inference_tab() -> None:
         return
 
     checkpoints = _checkpoint_options(cfg)
-    last_ckpt = st.session_state.get("last_checkpoint", "")
-    default_index = checkpoints.index(last_ckpt) if last_ckpt in checkpoints else (len(checkpoints) - 1 if checkpoints else 0)
-    checkpoint = st.selectbox("Checkpoint", checkpoints, index=default_index if checkpoints else 0)
+    if not checkpoints:
+        st.info("Nenhum checkpoint disponível. Treine o modelo antes de realizar inferência.")
+        checkpoint = ""
+    else:
+        last_ckpt = st.session_state.get("last_checkpoint", "")
+        default_index = checkpoints.index(last_ckpt) if last_ckpt in checkpoints else len(checkpoints) - 1
+        checkpoint = st.selectbox("Checkpoint", checkpoints, index=default_index)
 
     uploaded_image = st.file_uploader("Imagem para análise", type=["png", "jpg", "jpeg", "tif", "tiff", "bmp"])
     if st.button("Executar inferência", disabled=not checkpoint or uploaded_image is None):
