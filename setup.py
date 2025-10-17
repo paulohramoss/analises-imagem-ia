@@ -11,6 +11,9 @@ setup(
         "numpy",
         "pillow",
         "pyyaml",
+        "requests",
+        "fastapi",
+        "python-multipart",
     ],
     python_requires=">=3.8",
 )

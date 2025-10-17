@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from contextlib import contextmanager
 from typing import Any, Dict
 
 import pandas as pd
@@ -18,9 +18,13 @@ from medimaging_ai.inference import Predictor
 from medimaging_ai.models import build_model
 from medimaging_ai.trainer import Trainer
 from medimaging_ai.utils import load_training_status
+from medimaging_ai.storage import TemporaryFileManager
 
 
 st.set_page_config(page_title="MedImaging AI", layout="wide")
+
+
+temp_manager = TemporaryFileManager()
 
 
 def _to_serializable(data: Any) -> Any:
@@ -65,12 +69,11 @@ def _run_training(cfg: ExperimentConfig) -> Path:
     return trainer.fit(train_loader, val_loader)
 
 
-def _save_uploaded_file(upload, suffix: str) -> Path:
-    temp_file = NamedTemporaryFile(delete=False, suffix=suffix)
-    temp_file.write(upload.getvalue())
-    temp_file.flush()
-    temp_file.close()
-    return Path(temp_file.name)
+@contextmanager
+def _temporary_upload(upload, suffix: str):
+    with temp_manager.reserve_path(suffix=suffix) as handle:
+        handle.path.write_bytes(upload.getvalue())
+        yield handle
 
 
 def _checkpoint_options(cfg: ExperimentConfig) -> list[str]:
@@ -172,15 +175,14 @@ def _render_inference_tab() -> None:
             st.warning("Envie uma imagem para análise.")
             return
 
-        temp_path = _save_uploaded_file(uploaded_image, suffix=Path(uploaded_image.name).suffix or ".png")
-        try:
-            predictor = Predictor(cfg, Path(checkpoint))
-            predictions = predictor.predict(temp_path)
-        except Exception as exc:  # pragma: no cover - interface interativa
-            st.error(f"Erro ao executar a inferência: {exc}")
-            return
-        finally:
-            temp_path.unlink(missing_ok=True)
+        with _temporary_upload(uploaded_image, suffix=Path(uploaded_image.name).suffix or ".png") as temp_handle:
+            temp_path = temp_handle.path
+            try:
+                predictor = Predictor(cfg, Path(checkpoint))
+                predictions = predictor.predict(temp_path)
+            except Exception as exc:  # pragma: no cover - interface interativa
+                st.error(f"Erro ao executar a inferência: {exc}")
+                return
 
         st.session_state["last_checkpoint"] = checkpoint
         st.subheader("Probabilidades por classe")
@@ -208,16 +210,16 @@ def _render_comparison_tab() -> None:
             st.warning("Envie as duas imagens para realizar a comparação.")
             return
 
-        ref_path = _save_uploaded_file(reference_file, suffix=Path(reference_file.name).suffix or ".png")
-        tgt_path = _save_uploaded_file(target_file, suffix=Path(target_file.name).suffix or ".png")
-        try:
-            result = compare_images(ref_path, tgt_path)
-        except Exception as exc:  # pragma: no cover - interface interativa
-            st.error(f"Erro ao comparar imagens: {exc}")
-            return
-        finally:
-            ref_path.unlink(missing_ok=True)
-            tgt_path.unlink(missing_ok=True)
+        with _temporary_upload(
+            reference_file, suffix=Path(reference_file.name).suffix or ".png"
+        ) as ref_handle, _temporary_upload(
+            target_file, suffix=Path(target_file.name).suffix or ".png"
+        ) as tgt_handle:
+            try:
+                result = compare_images(ref_handle.path, tgt_handle.path)
+            except Exception as exc:  # pragma: no cover - interface interativa
+                st.error(f"Erro ao comparar imagens: {exc}")
+                return
 
         st.metric("SSIM", f"{result.ssim:.4f}")
         st.metric("Diferença absoluta média", f"{result.mean_abs_diff:.4f}")
