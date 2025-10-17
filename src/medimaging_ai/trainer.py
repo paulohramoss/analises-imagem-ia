@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from .config import ExperimentConfig
-from .utils import get_device, save_metrics, set_seed
+from .utils import get_device, save_metrics, set_seed, update_training_status
 
 
 @dataclass
@@ -48,15 +48,32 @@ class Trainer:
         best_metric = float("inf")
         patience_counter = 0
         best_path = Path(self.cfg.paths.output_dir) / "checkpoints" / "best.pt"
+        latest_path = Path(self.cfg.paths.output_dir) / "checkpoints" / "latest.pt"
+        status_path = Path(self.cfg.paths.output_dir) / "logs" / "status.json"
 
+        update_training_status(
+            status_path,
+            {
+                "state": "running",
+                "epoch": 0,
+                "max_epochs": self.cfg.train.num_epochs,
+                "best_checkpoint": str(best_path),
+                "latest_checkpoint": str(latest_path),
+            },
+        )
+
+        stopped_early = False
+        last_metrics: TrainState | None = None
         for epoch in range(1, self.cfg.train.num_epochs + 1):
             train_loss, train_acc = self._run_epoch(train_loader, train=True)
             val_loss, val_acc = self._run_epoch(val_loader, train=False)
 
             self.scheduler.step(val_loss)
 
-            metrics = TrainState(epoch, train_loss, train_acc, val_loss, val_acc)
-            save_metrics(metrics.__dict__, Path(self.cfg.paths.output_dir) / "logs" / "metrics.csv")
+            last_metrics = TrainState(epoch, train_loss, train_acc, val_loss, val_acc)
+            save_metrics(last_metrics.__dict__, Path(self.cfg.paths.output_dir) / "logs" / "metrics.csv")
+
+            torch.save(self.model.state_dict(), latest_path)
 
             if self.cfg.checkpoint.save_best_only:
                 improved = (
@@ -69,9 +86,44 @@ class Trainer:
                 else:
                     patience_counter += 1
                     if patience_counter >= self.cfg.train.patience:
+                        stopped_early = True
                         break
             else:
                 torch.save(self.model.state_dict(), best_path)
+
+            update_training_status(
+                status_path,
+                {
+                    "state": "running",
+                    "epoch": epoch,
+                    "max_epochs": self.cfg.train.num_epochs,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "best_checkpoint": str(best_path),
+                    "latest_checkpoint": str(latest_path),
+                },
+            )
+
+        final_state = "stopped" if stopped_early else "completed"
+        final_status = {
+            "state": final_state,
+            "epoch": last_metrics.epoch if last_metrics else 0,
+            "max_epochs": self.cfg.train.num_epochs,
+            "best_checkpoint": str(best_path),
+            "latest_checkpoint": str(latest_path),
+        }
+        if last_metrics:
+            final_status.update(
+                {
+                    "train_loss": last_metrics.train_loss,
+                    "train_acc": last_metrics.train_acc,
+                    "val_loss": last_metrics.val_loss,
+                    "val_acc": last_metrics.val_acc,
+                }
+            )
+        update_training_status(status_path, final_status)
 
         return best_path
 

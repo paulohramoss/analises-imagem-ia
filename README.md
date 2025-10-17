@@ -96,6 +96,25 @@ python scripts/train.py --config configs/default.yaml
 
 O script treina um modelo `ResNet18` pré-treinado e salva os checkpoints em `artifacts/checkpoints`. Métricas e logs ficam disponíveis no console e em um arquivo CSV.
 
+### Interface web interativa
+
+Como alternativa aos scripts de linha de comando, você pode acompanhar todo o fluxo por meio de uma interface construída em Streamlit.
+
+1. Certifique-se de instalar as dependências adicionais (`streamlit`, `pandas`, `plotly`).
+2. Inicie a interface:
+
+   ```bash
+   streamlit run app/main.py
+   ```
+
+3. Use as abas para:
+   - **Configuração:** selecionar o arquivo YAML e revisar os parâmetros carregados;
+   - **Treinamento:** iniciar o processo diretamente pelo navegador, consultar o arquivo de status (`artifacts/logs/status.json`) e visualizar o histórico de métricas em tempo real;
+   - **Inferência:** escolher um checkpoint salvo e enviar uma imagem para obter as probabilidades por classe (incluindo gráfico interativo);
+   - **Comparação:** carregar dois exames e calcular SSIM e diferença absoluta média.
+
+O painel lê continuamente os arquivos salvos em `cfg.paths.output_dir` (checkpoints, métricas e `status.json`), permitindo acompanhar o progresso enquanto o treinamento está em execução — seja iniciado pela própria interface ou por outra sessão.
+
 ## Inferência
 
 ```bash
